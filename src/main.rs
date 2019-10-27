@@ -1,13 +1,14 @@
-use std::env;
 use std::fs;
+use serde::{Deserialize};
 
 use serenity::{
     model::{channel::Message, gateway::Ready},
     prelude::*,
 };
 use serenity::model::id::RoleId;
+use serenity::model::guild::GuildContainer;
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 struct Settings {
     token: String,
     role_id: u64,
@@ -19,41 +20,35 @@ struct Handler {
 }
 
 impl EventHandler for Handler {
+    //Will reply with a random message case the author doesn't have a specified role
     fn message(&self, ctx: Context, msg: Message) {
-        let guild = msg.guild_id.to_guild();
-        if msg.author.has_role(&ctx.http, guild, RoleId(&self.settings.role_id.into())) {
-            msg.channel_id.say(&ctx.http, "test")
+        let role_id: u64 = self.settings.role_id.clone();
+        //checks bot if the author hasn't the role and isn't a bot
+        //not checking if is a bot would result in the bot replying itself afterwards
+        if !(msg.author.has_role(&ctx, GuildContainer::Id(msg.guild_id.unwrap()), RoleId(role_id)).unwrap()
+            || msg.author.bot) {
+            //select the random index
+            let index: usize = rand::random::<usize>() % self.settings.random_sentences.len();
+            //Gets the string in the specified index replacing any "{}" for the target user's mention
+            let content: String = self.settings.random_sentences.get(index).unwrap().replace("{}", &msg.author.mention());
+            msg.channel_id.say(ctx.http, content).expect("Something went wrong replying to message");
         }
     }
 
-    // Set a handler to be called on the `ready` event. This is called when a
-    // shard is booted, and a READY payload is sent by Discord. This payload
-    // contains data like the current user's guild Ids, current user data,
-    // private channels, and more.
-    //
-    // In this case, just print what the current user's username is.
     fn ready(&self, _: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
     }
 }
 
 fn main() {
-    // Configure the client with your Discord bot token in the environment.
+    //Obtains the Settings.json file in the root of the project. This is where the bot's token and other data is stored
     let serialized_settings = fs::read_to_string("Settings.json")
-        .expect("Something went wrong reading the file");
-    let settings: Settings = json::decode(serialized_settings).unwrap();
-    let token = env::var("")
-        .expect("Expected a token in the environment");
+        .expect("Setting.json could not be found");
+    let settings: Settings = serde_json::from_str(serialized_settings.as_str()).expect("Setting.json could not be deserialized");
 
-    // Create a new instance of the Client, logging in as a bot. This will
-    // automatically prepend your bot token with "Bot ", which is a requirement
-    // by Discord for bot users.
-    let mut client = Client::new(&token, Handler(settings)).expect("Error creating client");
+    let mut client = Client::new(settings.token.clone(), Handler { settings }).expect("Error creating client");
 
-    // Finally, start a single shard, and start listening to events.
-    //
-    // Shards will automatically attempt to reconnect, and will perform
-    // exponential backoff until it reconnects.
+
     if let Err(why) = client.start() {
         println!("Client error: {:?}", why);
     }

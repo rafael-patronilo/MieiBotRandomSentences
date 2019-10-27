@@ -7,7 +7,7 @@
       <sourceFolder url="file://$MODULE_DIR$/../MieiBotRandomSentences\examples" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/../MieiBotRandomSentences\tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/../MieiBotRandomSentences\benches" isTestSource="true" />
-      <excludeFolder url="file://$MODULE_DIR$/../MieiBotRandomSentences\target" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
